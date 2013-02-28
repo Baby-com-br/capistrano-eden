@@ -1,11 +1,13 @@
 # -*- encoding: utf-8 -*-
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'cap-eden/version'
+
+#equire 'capistrano-eden/version'
 
 Gem::Specification.new do |gem|
   gem.name          = "capistrano-eden"
-  gem.version       = Capistrano::Eden::VERSION
+# gem.version       = Capistrano::Eden::VERSION
+  gem.version       = '0.0.1'
   gem.authors       = ["Marcus Vinicius Ferreira"]
   gem.email         = ["ferreira.mv@gmail.com"]
   gem.description   = "bunch of helpers for capistrano"
@@ -17,3 +19,4 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
 end
+
