@@ -44,48 +44,143 @@ files = {
 
   FILE
 
-  "config/deploy.rb" => '
-set :application, "set your application name here"
-set :repository,  "set your repository location here"
+  "config/deploy.rb" => %q{###
+###
+###
 
-# set :scm, :git # You can set :scm explicitly or Capistrano will make an intelligent guess based on known version control directory names
-# Or: `accurev`, `bzr`, `cvs`, `darcs`, `git`, `mercurial`, `perforce`, `subversion` or `none`
+require 'capistrano-eden'
+require 'bundler/capistrano'
+#equire 'codebase/recipes'
 
-role :web, "your web-server here"                          # Your HTTP server, Apache/etc
-role :app, "your app-server here"                          # This may be the same as your `Web` server
-role :db,  "your primary db-server here", :primary => true # This is where Rails migrations will run
-role :db,  "your slave db-server here"
+set :user  , "user"
+set :group , "app"
 
-# if you want to clean up old releases on each deploy uncomment this:
-# after "deploy:restart", "deploy:cleanup"
+set :scm         , :git
+set :application , "myapp"
+set :repository  , "git@codebasehq.com:mycompany/myproject/#{application}.git"
+#et :repository  , "git@bitbucket.org:myself/#{application}.git"
+#et :repository  , "git@github.com:myself/#{application}.git"
 
-# if you\'re still using the script/reaper helper you will need
-# these http://github.com/rails/irs_process_scripts
+set :repository_cache , "git-#{application}"
+set :deploy_via       , :remote_cache
+set :group_writable   , true
 
-# If you are using Passenger mod_rails uncomment this:
-# namespace :deploy do
-#   task :start do ; end
-#   task :stop do ; end
-#   task :restart, :roles => :app, :except => { :no_release => true } do
-#     run "#{try_sudo} touch #{File.join(current_path,\'tmp\',\'restart.txt\')}"
-#   end
+set :deploy_to        , "/eden/app/#{application}"
+set :shared_children  , %w/config/
+set :keep_releases    , 5
+
+set :bundle_dir       , "#{shared_path}/bundle"
+set :bundle_flags     , "--deployment --quiet"
+
+default_run_options[:pty] = true
+ssh_options[:forward_agent] = true
+
+### Define your servers in config/deploy/{dev,prd}.rb
+### Example:
+###   server "srv1.example.com" , :app , :web, :db, :primary => true
+###   server "srv2.example.com" , :app , :web
+
+after "deploy:restart" , "deploy:cleanup"
+
+###
+### PATHs Cheat Sheet
+###
+###   - current_release
+###   - latest_release
+###   - previous_release
+###   - shared_path
+###
+
+### Symlink from #{deploy_to}/config
+###           to #{latest_release}/config
+set :config_files, {
+    '*.yml'          => "config/",
+    'unicorn.rb'     => "config/",
+    'production.rb'  => "config/environments/"
+}
+
+### Symlink inside RAILS_ROOT
+###     source => destination
+set :symlinks, {
+    '/data/web/assets' => "#{latest_release}/public/assets",
+    '/data/web/static' => "#{latest_release}/public/static",
+}
+
+
+namespace :deploy do
+
+  ###
+  ### Unicorn
+  ###
+  [:start, :stop, :status].each do |t|
+    desc "unicorn #{t}"
+    task t, :roles => :app, :except => { :no_release => true } do
+      run "#{shared_path}/sh/script.sh #{t}"
+      #un "#{sudo} /etc/init.d/script.sh #{t}", :pty => true
+      #un "touch #{shared_path}/tmp/restart.txt"
+    end
+  end
+
+  desc "unicorn restart"
+  task restart, :roles => :app, :except => { :no_release => true } do
+    run "#{shared_path}/sh/script.sh restart"
+    #un "#{sudo} /etc/init.d/script.sh restart", :pty => true
+    #un "touch #{shared_path}/tmp/restart.txt"
+  end
+
+
+  ###
+  ### Passenger
+  ###
+# task :start do ; end
+# task :stop do ; end
+# task :restart, :roles => :app, :except => { :no_release => true } do
+#   run "#{try_sudo} touch #{shared_path}/tmp/restart.txt"
 # end
-',
-  "config/deploy/dev.rb" => "
+
+end # namespace
+
+# vim:ft=ruby
+
+},
+
+  "config/deploy/dev.rb" => %q{###
+### Development
+###
+
 server 'srv1.example-dev.com', :app, :web, :db, :primary => true
 server 'srv2.example-dev.com', :app, :web
+server 'nfs1.example-dev.com', :no_release => true
 
-set :env, 'development'
+set :bundle_without ,  [:development, :test]
 
-",
-}
-  "config/deploy/prd.rb" => "
+# vim:ft=ruby:
+
+},
+  "config/deploy/prd.rb" => %q{###
+### Production
+###
+
 server 'srv1.example-prd.com', :app, :web, :db, :primary => true
 server 'srv2.example-prd.com', :app, :web
+server 'nfs1.example-prd.com', :no_release => true
 
-set :env, 'production'
+set :bundle_without ,  [:development, :test]
 
-"
+# vim:ft=ruby:
+
+},
+  "config/deploy/vagrant.rb" => %q{###
+### My vagrant server
+###
+
+server '192.168.33.10', :app, :web, :db, :primary => true
+
+set :bundle_without ,  [:development, :test]
+
+# vim:ft=ruby:
+
+}
 }
 
 base = ARGV.shift
