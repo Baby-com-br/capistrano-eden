@@ -1,6 +1,13 @@
 require File.dirname(__FILE__) + '/../capistrano-eden' if ! defined?(CapistranoEden)
 require File.dirname(__FILE__) + '/branch'
 
+# used in gemspec
+module Capistrano
+  module Eden
+    VERSION = "0.0.1"
+  end
+end
+
 CapistranoEden.with_configuration do
 
   namespace :deploy do
@@ -26,5 +33,4 @@ CapistranoEden.with_configuration do
   end # namespace
 
 end
-
 
