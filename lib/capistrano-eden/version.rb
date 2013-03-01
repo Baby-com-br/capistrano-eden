@@ -10,25 +10,35 @@ end
 
 CapistranoEden.with_configuration do
 
-  namespace :deploy do
+  namespace :eden do
 
-    desc "(version.rb) [internal] Write the name of the tag that we're deploying to a VERSION file"
-    task :write_version_file, :except => { :no_release =>  true } do
+    desc <<-'DESC'
+    use 'cap -e eden:version' for more.
 
-      if    ENV['TAG']    then _msg = "TAG=#{branch}"
-      elsif ENV['BRANCH'] then _msg = "BRANCH=#{branch}"
-      else                     _msg = "#{branch}"
+    (version.rb) [internal] Write the name of the deployed tag/branch to a VERSION file:"
+
+        File 1: #{current_path}/VERSION
+        File 2: #{current_path}/public/v.html if [ -d #{current_path}/public/ ]
+
+
+    DESC
+    task :write_version, :except => { :no_release =>  true } do
+
+      if    ENV['TAG']    then _ver = "TAG=#{branch}"
+      elsif ENV['BRANCH'] then _ver = "BRANCH=#{branch}"
+      else                     _ver = "#{branch}"
       end
+
+      _msg = "Deploy: #{_ver}. SHA1: #{latest_revision}"
 
       puts "  * Version [#{_msg}]"
       run <<-CMD.compact
-          echo  'Version is #{_msg}' >  #{release_path}/VERSION" ;
-          [ -d #{release_path}/public ] &&
-          echo  'Version is #{_msg}' >  #{release_path}/public/_v.html"
+        echo #{_msg} > #{latest_release}/VERSION ;
+        test -d #{latest_release}/public && echo #{_msg} > #{latest_release}/public/_v.html || :
       CMD
 
     end
-    after "deploy:update_code", "deploy:write_version_file"
+    after "deploy:update_code", "eden:write_version"
 
   end # namespace
 
