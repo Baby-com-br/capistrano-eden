@@ -3,64 +3,88 @@ require File.dirname(__FILE__) + '/../capistrano-eden' if ! defined?(CapistranoE
 CapistranoEden.with_configuration do
 
   def _mytime
-    Time.now.strftime("%Y-%m-%d-%H-%M-%S")
+    Time.now.strftime("%Y-%m-%d_%H-%M-%S")
   end
 
-  namespace :deploy do
+  namespace :eden do
 
     ###
     ### setup_vars
     ###
-    desc "(defaults.rb) [internal] Setting up vars"
-    task :setup_vars, :except => { :no_release =>  true } do
+    desc <<-DESC
+      use 'cap -e eden:default' for more.
 
-        # Eden defaults
+      (defaults.rb) [internal] Eden default dirtree.
+
+      Implements the following:
+          [deploy_to]
+          [deploy_to]/bundle
+          [deploy_to]/config
+          [deploy_to]/current -> [deploy_to]/releases/2013-01-17_13-11-45
+          [deploy_to]/releases
+          [deploy_to]/releases/2013-01-17_13-11-45
+          [deploy_to]/log
+          [deploy_to]/tmp
+
+      Additional itens may be set added defining :shared_children
+          [deploy_to]/sh
+          [deploy_to]/system
+          [deploy_to]/pids
+
+      In this layout shared itens are 1 level up, i.e,
+      :deploy_to is equal to :shared_path
+
+    DESC
+    task :defaults, :except => { :no_release =>  true } do
+
+        # These are FIXED
         set :release_name  , _mytime()
-        set :ugroup        , "app"
-        set :umask         , "002"
-
-        set :keep_releases , 5
-        set :use_sudo      , true
-        set :default_shell , "/bin/bash"
-
         set :base_path     , "/eden"
         set :app_path      , "#{base_path}/app"
-        set :logs_path     , "#{base_path}/logs/#{application}"
 
         set :deploy_to     , "#{app_path}/#{application}"
         set :shared_path   , "#{deploy_to}"
-        set :config_path   , "#{deploy_to}/config"
 
+        default_run_options[:pty] = true
+        ssh_options[:forward_agent] = true
 
-      # set :base_path     , fetch(:base_path    , "/abd"                     )
-      # set :app_path      , fetch(:app_path     ,"#{base_path}/app"          )
-      # set :logs_path     , fetch(:logs_path    ,"#{base_path}/logs/#{application}")
-      # set :deploy_to     , fetch(:deploy_to    ,"#{app_path}/#{application}")
-      # set :current_path  , fetch(:current_path ,"#{deploy_to}/current"      )
-      # set :releases_path , fetch(:releases_path,"#{deploy_to}/releases"     )
-      # set :shared_path   , fetch(:shared_path  ,"#{deploy_to}"              )
-      # set :config_path   , fetch(:config_path  ,"#{deploy_to}/config"       )
-      # set :bundle_path   , fetch(:bundle_path  ,"#{deploy_to}/bundle"       )
+        # These may be OVERWRITTEN
+        _cset :config_path   , "#{shared_path}/config"
+        _cset :log_path      , "#{shared_path}/log"
+        _cset :tmp_path      , "#{shared_path}/tmp"
+
+        _cset :bundle_dir    , "#{shared_path}/bundle"
+        _cset :bundle_flags  , "--deployment --quiet"
+
+        _cset :group         , "app"
+        _cset :umask         , "002"
+
+        _cset :keep_releases , 5
+        _cset :use_sudo      , true
+        _cset :default_shell , "/bin/bash"
+        _cset :group_writable, false
 
     end
-    before  "deploy:update" , "deploy:setup_vars"
-    before  "deploy:migrate", "deploy:setup_vars"
+    before 'deploy:update' , 'eden:defaults'
 
     ###
     ### show_vars
     ###
-    desc "(defaults.rb) show_vars: Show custom variables defined by eden.rb."
-    task :show_vars, :except => { :no_release =>  true } do
+    desc "(defaults.rb) show_defaults: Main variables set by a run session."
+    task :show_defaults do
 
-        deploy.setup_vars
+        eden.defaults
 
         puts "-" * 70
         puts "eden.rb:show_vars - using current values:"
         puts ""
-        puts "              port: #{port}"
-        puts "             umask: #{umask}"
+#       puts "              port: #{port}"
+#       puts "             umask: #{umask}"
         puts "              user: #{user}"
+        puts "             group: #{group}"
         puts "       application: #{application}"
+        puts ""
+        puts "               scm: #{scm}"
         puts "        repository: #{repository}"
         puts "  repository_cache: #{repository_cache}"
         puts ""
@@ -69,31 +93,27 @@ CapistranoEden.with_configuration do
         puts "       deploy_path: #{deploy_to}"
         puts "      current_path: #{current_path}"
         puts "     releases_path: #{releases_path}"
-        puts "       shared_path: #{shared_path}"
         puts "       config_path: #{config_path}"
-        puts "         logs_path: #{logs_path}"
+        puts "          log_path: #{log_path}"
+        puts "       shared_path: #{shared_path}"
+        puts "   shared_children: #{shared_children}"
+        puts "    group_writable: #{group_writable}"
+        puts ""
+        puts "        bundle_dir: #{bundle_dir}"
+        puts ""
+        puts "  previous_release: #{previous_release}"
+        puts "    latest_release: #{latest_release}"
+        puts "   current_release: #{current_release}"
+        puts "      current_path: #{current_path}"
+        puts ""
+#       puts " previous_revision: #{previous_revision}"
+#       puts "   latest_revision: #{latest_revision}"
+#       puts "  current_revision: #{current_revision}"
+        puts ""
         puts "-" * 70
         puts ""
 
     end
-
-    ###
-    ### cleanup releases_path
-    ###
-    after  "deploy:finalize_update" , "deploy:cleanup"
-
-    ###
-    ### cleanup_shared
-    ###
-#   desc "(defaults.rb) [internal] Clean up unused dirs."
-#   task :cleanup_shared, :roles => :app, :except => { :no_release => true } do
-#       run "/bin/rm -rf #{shared_path}/{log,pids,system} #{latest_release}/public/system"
-#       run "ln -nsf #{logs_path} #{latest_release}/log      "
-#       run "ln -nsf #{logs_path} #{latest_release}/tmp/pids "
-#   end
-#   after  "deploy:finalize_update" , "deploy:cleanup_shared"
-
-    ###
 
   end # namespace
 
