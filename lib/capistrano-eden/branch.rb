@@ -2,9 +2,29 @@ require File.dirname(__FILE__) + '/../capistrano-eden' if ! defined?(CapistranoE
 
 CapistranoEden.with_configuration do
 
-  namespace :deploy do
+  namespace :eden do
 
-    desc "(branch.rb) [internal] Ensure that a branch has been selected."
+    desc <<-DESC
+    use 'cap -e eden:set_branch' for more.
+
+    (branch.rb) [internal] Deploy by BRANCH or TAG.
+
+        To deploy by BRANCH:
+
+            $ BRANCH=branch_name cap stage deploy
+
+
+        To deploy by TAG:
+
+            $ TAG=tag_name cap stage deploy
+            $ TAG=SHA1     cap stage deploy
+
+
+        To deploy 'master' (default):
+
+            $ cap stage deploy
+
+    DESC
     task :set_branch, :except => { :no_release =>  true } do
 
       if !exists?(:branch)
@@ -13,8 +33,8 @@ CapistranoEden.with_configuration do
 
     end # task
     # on :start, :set_branch
-    before  "deploy:update" , "deploy:set_branch"
-    before  "deploy:migrate", "deploy:set_branch"
+    before  "deploy:update" , "eden:set_branch"
+    before  "deploy:migrate", "eden:set_branch"
 
   end # namespace
 
