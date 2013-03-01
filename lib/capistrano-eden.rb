@@ -1,13 +1,5 @@
 require 'capistrano'
 
-require 'capistrano-eden/defaults'
-require 'capistrano-eden/setup'
-require 'capistrano-eden/branch'
-require 'capistrano-eden/configs'
-require 'capistrano-eden/symlinks'
-require 'capistrano-eden/version'
-
-
 unless Capistrano::Configuration.respond_to?(:instance)
   abort "capistrano-eden requires Capistrano 2"
 end
@@ -21,4 +13,15 @@ class CapistranoEden
   end
 
 end
+
+require 'capistrano-eden/multistage'
+require 'capistrano-eden/defaults'
+require 'capistrano-eden/setup'
+require 'capistrano-eden/finalize_update'
+
+require 'capistrano-eden/branch'
+require 'capistrano-eden/config_files'
+require 'capistrano-eden/symlinks'
+require 'capistrano-eden/version'
+
 
