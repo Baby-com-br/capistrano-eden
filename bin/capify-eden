@@ -36,44 +36,41 @@ def unindent(string)
 end
 
 files = {
-  "Capfile" => unindent(<<-FILE),
+  "Capfile" => %q{
+load 'deploy'
+load 'config/deploy' # remove this line to skip loading any of the default tasks
 
-    load 'deploy'
+# vim:ft=ruby
 
-    load 'config/deploy' # remove this line to skip loading any of the default tasks
-
-  FILE
-
+},
   "config/deploy.rb" => %q{###
 ###
 ###
 
 require 'capistrano-eden'
-require 'bundler/capistrano'
-#equire 'codebase/recipes'
+# require 'bundler/capistrano' # if using bundler
+# require 'codebase/recipes'   # if codebase, tracking deployments
+# load 'deploy/assets'         # if rails, using assets
 
 set :user  , "user"
 set :group , "app"
 
-set :scm         , :git
 set :application , "myapp"
 set :repository  , "git@codebasehq.com:mycompany/myproject/#{application}.git"
-#et :repository  , "git@bitbucket.org:myself/#{application}.git"
-#et :repository  , "git@github.com:myself/#{application}.git"
+#et :repository  , "git@bitbucket.org:myself/#{application}.git"   # from bitbucket
+#et :repository  , "git@github.com:myself/#{application}.git"      # from github
 
+set :scm              , :git
 set :repository_cache , "git-#{application}"
 set :deploy_via       , :remote_cache
-set :group_writable   , true
 
 set :deploy_to        , "/eden/app/#{application}"
-set :shared_children  , %w/config/
+set :shared_children  , %w/tmp pid/
+set :group_writable   , false
 set :keep_releases    , 5
 
 set :bundle_dir       , "#{shared_path}/bundle"
 set :bundle_flags     , "--deployment --quiet"
-
-default_run_options[:pty] = true
-ssh_options[:forward_agent] = true
 
 ### Define your servers in config/deploy/{dev,prd}.rb
 ### Example:
@@ -95,8 +92,8 @@ after "deploy:restart" , "deploy:cleanup"
 ###           to #{latest_release}/config
 set :config_files, {
     '*.yml'          => "config/",
-    'unicorn.rb'     => "config/",
-    'production.rb'  => "config/environments/"
+   #'unicorn.rb'     => "config/",
+   #'production.rb'  => "config/environments/"
 }
 
 ### Symlink inside RAILS_ROOT
@@ -113,7 +110,7 @@ namespace :deploy do
   ### Unicorn
   ###
   [:start, :stop, :status].each do |t|
-    desc "unicorn #{t}"
+    desc "Unicorn #{t}"
     task t, :roles => :app, :except => { :no_release => true } do
       run "#{shared_path}/sh/script.sh #{t}"
       #un "#{sudo} /etc/init.d/script.sh #{t}", :pty => true
@@ -121,8 +118,8 @@ namespace :deploy do
     end
   end
 
-  desc "unicorn restart"
-  task restart, :roles => :app, :except => { :no_release => true } do
+  desc "Unicorn restart"
+  task :restart, :roles => :app, :except => { :no_release => true } do
     run "#{shared_path}/sh/script.sh restart"
     #un "#{sudo} /etc/init.d/script.sh restart", :pty => true
     #un "touch #{shared_path}/tmp/restart.txt"
@@ -132,8 +129,12 @@ namespace :deploy do
   ###
   ### Passenger
   ###
-# task :start do ; end
-# task :stop do ; end
+# [:start, :stop, :status].each do |t|
+#   desc "Passenger #{t}"
+#   task t, :roles => :app, :except => { :no_release => true } do ; end
+# end
+#
+# desc "Passenger restart"
 # task :restart, :roles => :app, :except => { :no_release => true } do
 #   run "#{try_sudo} touch #{shared_path}/tmp/restart.txt"
 # end
